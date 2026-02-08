@@ -1,0 +1,185 @@
+<!--
+Valentine_Proposal_Site.html
+Single-file HTML/CSS/JS. 
+
+How to use:
+1) Open this file in any browser to preview locally.
+2) Replace placeholders: {{HER_NAME}}, {{YOUR_NAME}}, {{PHOTO_URL}}, {{MUSIC_URL}}, {{SHORT_MESSAGE}}.
+   - PHOTO_URL can be an image link (https://...) or a local filename placed alongside this HTML.
+   - MUSIC_URL can be a YouTube embed URL or empty to disable music.
+3) To host publicly: put this file in a GitHub repo and enable GitHub Pages, or upload to Netlify/Vercel.
+
+Quick features included:
+- Full-screen, mobile-friendly page
+- Heart animation + typed intro message
+- Play background music (optional)
+- "Will you be my Valentine?" button that reveals an animated proposal card
+- Confetti and heart particles on acceptance
+- Replace text/images easily via placeholders
+
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>For {{motu}}</title>
+  <style>
+    :root{--bg:#fff0f6;--accent:#ff3b6b;--muted:#6b6b6b}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{background:linear-gradient(180deg,var(--bg),#fff);display:flex;align-items:center;justify-content:center}
+    .card{width:92vw;max-width:780px;background:rgba(255,255,255,0.6);backdrop-filter:blur(6px);border-radius:18px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,0.12);text-align:center;position:relative;overflow:hidden}
+    .top{display:flex;gap:16px;align-items:center;justify-content:center;margin-bottom:6px}
+    .avatar{width:110px;height:110px;border-radius:50%;object-fit:cover;border:6px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
+    h1{margin:6px 0;font-size:28px;color:var(--accent)}
+    p.lead{color:var(--muted);margin:6px 0 18px}
+    .message{font-size:16px;color:#333;line-height:1.45;margin:12px 0}
+    .heart-wrap{display:flex;gap:12px;justify-content:center;margin:18px 0}
+    .btn{display:inline-block;padding:12px 20px;border-radius:999px;background:var(--accent);color:#fff;font-weight:600;text-decoration:none;cursor:pointer;border:none}
+    .btn.ghost{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+    .proposal{display:none;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fff,#ffeef4);margin-top:16px}
+    .reveal{animation:pop .45s ease both}
+    @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+    /* heart animation */
+    .heart{width:60px;height:60px;background:var(--accent);position:relative;transform:rotate(-45deg);border-radius:12px}
+    .heart:before,.heart:after{content:"";position:absolute;width:60px;height:60px;border-radius:50%;background:var(--accent)}
+    .heart:before{top:-30px;left:0}
+    .heart:after{left:30px;top:0}
+    /* confetti canvas */
+    canvas.confetti{position:absolute;inset:0;pointer-events:none}
+    footer{margin-top:12px;color:var(--muted);font-size:13px}
+    /* small screens */
+    @media (max-width:520px){.avatar{width:88px;height:88px}.card{padding:18px}.heart{width:48px;height:48px}.heart:before,.heart:after{width:48px;height:48px}}    
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <canvas class="confetti" id="confettiCanvas"></canvas>
+
+    <div class="top">
+      <img class="avatar" id="photo" src="https://i.postimg.cc/PrcDfhsJ/val_photo_nakul.jpg" alt="photo">
+    </div>
+
+    <h1 id="title"> motu babbyyy ✨</h1>
+    <p class="lead">i make something for youuuu.</p>
+
+    <div class="heart-wrap">
+      <div class="heart" aria-hidden="true"></div>
+    </div>
+
+    <p class="message" id="shortMsg">i really likeeyy you mottaa my fattiee cutieee pie</p>
+
+    <div>
+      <button class="btn" id="askBtn">will you be my valentine pooks ;))</button>
+      <button class="btn ghost" id="surpriseBtn">need a little surprise first :P</button>
+    </div>
+
+    <div class="proposal" id="proposalCard">
+      <h2>will you be my valentine nowwwwww</h2>
+      <p style="margin:8px 0 14px">i know this is sudden, but every moment with you feels like a favorite song. please say yesss</p>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn" id="yesBtn">yes! 💓</button>
+        <button class="btn ghost" id="noBtn">still no... :(</button>
+      </div>
+      <footer>— motu</footer>
+    </div>
+
+  </div>
+
+  
+  <script>
+    // Easy customization: replace placeholders above or modify these vars if you prefer JS editing
+    const herName = '{{$motu}}'; // not used; visible placeholders in HTML
+
+    // DOM refs
+    const askBtn = document.getElementById('askBtn');
+    const proposal = document.getElementById('proposalCard');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+    const surpriseBtn = document.getElementById('surpriseBtn');
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const bgm = document.getElementById('bgm');
+
+    // play background music if available
+    function tryPlayBgm(){
+      if (bgm && bgm.src && !bgm.src.includes('https://www.youtube.com/watch?v=S1ITw5_Y3l4&list=RDS1ITw5_Y3l4&start_radio=1')){
+        bgm.play().catch(()=>{/* autoplay blocked */});
+      }
+    }
+
+    // show proposal card
+    askBtn.addEventListener('click', ()=>{
+      proposal.style.display = 'block';
+      proposal.classList.add('reveal');
+      tryPlayBgm();
+    });
+
+    // tiny surprise: toggles a short typed message
+    surpriseBtn.addEventListener('click', ()=>{
+      const msg = document.getElementById('shortMsg');
+      const texts = [
+        'You make me laugh like nobody else.',
+        'I love seeing the world with you.',
+        'You are my favourite notification.',
+        'Life’s better with you in it.'
+      ];
+      msg.textContent = texts[Math.floor(Math.random()*texts.length)];
+      tryPlayBgm();
+    });
+
+    // handle yes -> confetti + change UI
+    yesBtn.addEventListener('click', ()=>{
+      yesBtn.disabled = true;
+      yesBtn.textContent = 'YAAAAYAYAYAYAY 💘';
+      launchConfetti();
+      document.querySelector('.heart').style.transform = 'scale(1.12) rotate(-45deg)';
+    });
+
+    // no -> gentle message
+    noBtn.addEventListener('click', ()=>{
+      noBtn.disabled = true;
+      noBtn.textContent = 'click on the option to right next to this one';
+      proposal.querySelector('p').textContent = 'now motu sad. ;((';
+    });
+
+    // simple confetti implementation
+    function launchConfetti(){
+      const ctx = confettiCanvas.getContext('2d');
+      resizeCanvas();
+      const W = confettiCanvas.width; const H = confettiCanvas.height;
+      const pieces = [];
+      for(let i=0;i<120;i++) pieces.push({x:Math.random()*W,y:Math.random()*-H,vy:Math.random()*3+2,angle:Math.random()*360,size:6+Math.random()*8,spin:Math.random()*0.1});
+      let anim;
+      function draw(){
+        ctx.clearRect(0,0,W,H);
+        for(const p of pieces){
+          ctx.save();
+          ctx.translate(p.x,p.y);
+          ctx.rotate(p.angle);
+          ctx.fillStyle = `hsl(${Math.floor(Math.random()*360)},80%,60%)`;
+          ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+          ctx.restore();
+          p.y += p.vy; p.angle += p.spin;
+          if(p.y>H+50){p.y=-50; p.x=Math.random()*W}
+        }
+        anim = requestAnimationFrame(draw);
+      }
+      draw();
+      setTimeout(()=>cancelAnimationFrame(anim),6000);
+    }
+
+    function resizeCanvas(){
+      confettiCanvas.width = confettiCanvas.clientWidth * devicePixelRatio;
+      confettiCanvas.height = confettiCanvas.clientHeight * devicePixelRatio;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // small accessibility: keyboard trigger
+    document.addEventListener('keydown', (e)=>{if(e.key==='Enter') askBtn.click()});
+
+  </script>
+</body>
+</html>
